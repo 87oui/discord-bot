@@ -1,0 +1,8 @@
+[
+  { "id": "primary", "name": "メイン" },
+  {
+    "id": "xxxxx@group.calendar.google.com",
+    "name": "仕事",
+    "familyNotifyFilter": true
+  }
+]

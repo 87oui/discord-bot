@@ -1,0 +1,31 @@
+{
+  "name": "google-calendar-discord-notify",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "trustedDependencies": [],
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "biome check --write --verbose .",
+    "lint": "biome lint --verbose .",
+    "format": "biome format --write --verbose .",
+    "oauth": "node scripts/get-refresh-token.mjs",
+    "update-calendars": "wrangler kv key put config:calendars --binding=CALENDAR_KV --path=calendars.json --remote --preview false"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.6",
+    "@cloudflare/workers-types": "^5.20260801.1",
+    "@types/node": "26.1.2",
+    "lefthook": "2.1.10",
+    "typescript": "^5.9.2",
+    "vitest": "4.1.10",
+    "wrangler": "^4.28.0"
+  },
+  "dependencies": {
+    "@holiday-jp/holiday_jp": "2.5.1"
+  }
+}

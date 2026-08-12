@@ -1,0 +1,11 @@
+pre-commit:
+  commands:
+    format:
+      glob: "*.{js,ts,mjs,json,jsonc}"
+      run: npx @biomejs/biome check --unsafe {staged_files}
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: npm run typecheck
+    test:
+      glob: "*.{ts,tsx}"
+      run: npm run test
