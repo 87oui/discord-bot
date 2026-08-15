@@ -61,7 +61,6 @@ export async function handleMorning(env: Env, now = new Date()): Promise<void> {
   items.sort((a, b) => a.sortKey - b.sortKey)
 
   if (items.length === 0) {
-    await sendNotification(env.DISCORD_WEBHOOK_URL, '本日の予定はありません')
     return
   }
 
