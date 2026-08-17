@@ -104,14 +104,8 @@ cp calendars.example.json calendars.json
 npx wrangler kv key put config:calendars --binding=CALENDAR_KV --path=calendars.json --remote --preview false
 ```
 
-`familyNotifyFilter: true` を付けたカレンダーだけ、次の時間帯フィルタがかかります。
-
-| 予定 | 通知条件 |
-|---|---|
-| 時刻付き | JST **17:00〜翌4:00 に完全に収まる**（一部だけ重なる予定は除外） |
-| 終日 | 対象日がすべて **土・日・祝** |
-
-未指定 / `false` のカレンダーは従来どおり全予定が通知対象です。
+- 土日祝を除く平日の8:00〜16:00に完全に収まる予定以外はすべて通知（終日予定・土日祝・8時前開始・16時超終了などは通知対象）。
+- `familyNotifyFilter` が未指定または `false` のカレンダーは従来どおり全予定が通知対象です。
 
 `calendars.json` は個人のカレンダー ID を含むため `.gitignore` 済みです。  
 先に「2. KV namespace」で作成した ID を `wrangler.toml` の `id` / `preview_id` に入れておいてください。

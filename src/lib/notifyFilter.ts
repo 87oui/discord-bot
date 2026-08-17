@@ -1,9 +1,6 @@
 import holidayJp from '@holiday-jp/holiday_jp'
 import { DATE_ONLY } from '@/lib/time'
 
-const EVENING_START_MINUTES = 17 * 60
-const EVENING_END_MINUTES = 4 * 60
-
 /**
  * 家族向け通知フィルタを適用すべき予定かどうかを返す
  * @param start 予定の開始日時
@@ -21,125 +18,63 @@ export function shouldNotifyEvent(
     return true
   }
 
-  // 終日の予定は、土日祝の場合trueを返す
+  // 終日予定は日程に関係なく通知する
   if (DATE_ONLY.test(start) && DATE_ONLY.test(end)) {
-    return isAllDayFullyOnWeekendOrHoliday(start, end)
+    return true
   }
 
-  // 終日でない（時刻のある）予定は、夜間のみtrueを返す
-  return isFullyWithinEveningWindow(start, end)
+  // 時刻付き予定は、土日祝を除く平日の8:00〜16:00に完全に収まる予定以外を通知する
+  return !isFullyWithinWeekdayWorkHours(start, end)
 }
 
 /**
- * 終日の予定が土日祝かどうかを返す
- * @param startDate 予定の開始日
- * @param endDateExclusive 予定の終了日
- * @returns 予定の開始日から終了日までのすべての日が土日祝の場合trueを返す
+ * 平日の勤務時間帯に完全に収まるかどうかを返す
+ * @param start 予定の開始日時
+ * @param end 予定の終了日時
+ * @returns 土日祝を除く平日の同一日 8:00〜16:00 に完全に収まる場合true
  */
-function isAllDayFullyOnWeekendOrHoliday(
-  startDate: string,
-  endDateExclusive: string
+function isFullyWithinWeekdayWorkHours(
+  startStr: string,
+  endStr: string
 ): boolean {
-  // 予定の開始日から終了日までの配列を取得
-  const days = listInclusiveDateKeys(startDate, endDateExclusive)
-  if (days.length === 0) {
-    return false
-  }
-
-  // 全ての日付が土日祝ならtrueを返す
-  return days.every(isWeekendOrHoliday)
-}
-
-/**
- * 予定が夜間かどうかを返す
- * @param startIso 予定の開始日時
- * @param endIso 予定の終了日時
- * @returns 予定が夜間のみの場合trueを返す
- */
-function isFullyWithinEveningWindow(startIso: string, endIso: string): boolean {
-  const startMs = Date.parse(startIso)
-  const endMs = Date.parse(endIso)
+  // 開始日時と終了日時が不正な場合はfalseを返す
+  const startMs = Date.parse(startStr)
+  const endMs = Date.parse(endStr)
   if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
     return false
   }
 
+  // 開始日が土日祝の時点でfalseを返す
   const startParts = getDateTimeParts(new Date(startMs))
-  const startMinutes = startParts.hour * 60 + startParts.minute
-  let windowStartDate = `${startParts.year}-${startParts.month}-${startParts.day}`
-
-  // 日中の予定はfalseを返す
-  if (
-    startMinutes < EVENING_START_MINUTES &&
-    startMinutes >= EVENING_END_MINUTES
-  ) {
+  const startDate = `${startParts.year}-${startParts.month}-${startParts.day}`
+  if (!isWeekday(startDate)) {
     return false
   }
 
-  // 0時からの場合は日付を1日足す
-  if (startMinutes < EVENING_END_MINUTES) {
-    windowStartDate = addDays(windowStartDate, -1)
-  }
+  // 通知しない範囲（開始日の8時〜16時）
+  const windowStartMs = Date.parse(`${startDate}T08:00:00+09:00`)
+  const windowEndMs = Date.parse(`${startDate}T16:00:00+09:00`)
 
-  const windowStartMs = Date.parse(`${windowStartDate}T17:00:00+09:00`)
-  const windowEndMs = Date.parse(
-    `${addDays(windowStartDate, 1)}T04:00:00+09:00`
-  )
-
+  // 開始日時が通知しない範囲の開始以降かつ終了日時が通知しない範囲の終了以前ならtrueを返す
   return startMs >= windowStartMs && endMs <= windowEndMs
 }
 
 /**
- * 日付が土日祝かどうかを返す
+ * 土日祝を除く平日かどうかを返す
  * @param dateKey 日付（YYYY-MM-DD）
- * @returns 日付が土日祝の場合trueを返す
+ * @returns 月〜金かつ祝日でない場合true
  */
-function isWeekendOrHoliday(dateKey: string): boolean {
+function isWeekday(dateKey: string): boolean {
   const jstDay = new Date(`${dateKey}T00:00:00+09:00`)
   const weekday = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Tokyo',
     weekday: 'short',
   }).format(jstDay)
-  const isWeekend = weekday === 'Sat' || weekday === 'Sun'
-
-  return isWeekend || holidayJp.isHoliday(dateKey)
-}
-
-/**
- * 予定の開始日から終了日までのすべての日を返す
- * @param startDate 予定の開始日
- * @param endDateExclusive 予定の終了日
- * @returns 予定の開始日から終了日までのすべての日付の配列
- */
-function listInclusiveDateKeys(
-  startDate: string,
-  endDateExclusive: string
-): string[] {
-  const days: string[] = []
-  let cursor = startDate
-  while (cursor < endDateExclusive) {
-    days.push(cursor)
-    cursor = addDays(cursor, 1)
+  if (weekday === 'Sat' || weekday === 'Sun') {
+    return false
   }
 
-  return days
-}
-
-/**
- * 日付を加算する
- * @param dateKey 日付（YYYY-MM-DD）
- * @param days 加算する日数
- * @returns 加算後の日付
- */
-function addDays(dateKey: string, days: number): string {
-  const date = new Date(`${dateKey}T00:00:00+09:00`)
-  date.setUTCDate(date.getUTCDate() + days)
-
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Tokyo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date)
+  return !holidayJp.isHoliday(dateKey)
 }
 
 /**
