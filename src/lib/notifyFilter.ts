@@ -65,11 +65,11 @@ function isFullyWithinWeekdayWorkHours(
  * @returns 月〜金かつ祝日でない場合true
  */
 function isWeekday(dateKey: string): boolean {
-  const jstDay = new Date(`${dateKey}T00:00:00+09:00`)
+  const dateStart = new Date(`${dateKey}T00:00:00+09:00`)
   const weekday = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Tokyo',
     weekday: 'short',
-  }).format(jstDay)
+  }).format(dateStart)
   if (weekday === 'Sat' || weekday === 'Sun') {
     return false
   }

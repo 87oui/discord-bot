@@ -91,9 +91,11 @@ async function syncCalendar(
   calendarName: string,
   familyNotifyFilter: boolean
 ): Promise<Change[]> {
+  // 前回どこまで動機したかを、シンクトークンとスナップショットを取得して差分を確認する
   const existingToken = await getSyncToken(env, calendarId)
   const snapshots = await getEventSnapshots(env, calendarId)
 
+  // トークンがない初回は全件取得してスナップショットを作成する
   if (!existingToken) {
     await rebuildSnapshot(env, accessToken, calendarId, snapshots)
     return []
@@ -112,9 +114,11 @@ async function syncCalendar(
       familyNotifyFilter
     )
     await putEventSnapshots(env, calendarId, snapshots)
+    // どこまで取得したかのシンクトークンを保存する
     if (nextSyncToken) {
       await putSyncToken(env, calendarId, nextSyncToken)
     }
+
     return changes
   } catch (err) {
     if (err instanceof SyncTokenInvalidError) {
@@ -154,6 +158,7 @@ async function rebuildSnapshot(
   }
 
   await putEventSnapshots(env, calendarId, snapshots)
+  // どこまで取得したかのシンクトークンを保存する
   if (nextSyncToken) {
     await putSyncToken(env, calendarId, nextSyncToken)
   }

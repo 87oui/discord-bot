@@ -65,7 +65,7 @@ export async function handleMorning(env: Env, now = new Date()): Promise<void> {
   }
 
   const lines = [
-    '📅本日の予定:',
+    '📅 本日の予定',
     ...items.map(
       (item) =>
         `- ${item.calendarName}: ${item.summary} ${formatEventTime(item.start, item.end)}`

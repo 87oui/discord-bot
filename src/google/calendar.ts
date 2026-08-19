@@ -2,8 +2,16 @@ export interface CalendarEvent {
   id: string
   status?: string
   summary?: string
+  created?: string
   start?: { dateTime?: string; date?: string }
   end?: { dateTime?: string; date?: string }
+}
+
+export interface CalendarListEntry {
+  id: string
+  summary?: string
+  primary?: boolean
+  accessRole?: string
 }
 
 interface EventsListResponse {
@@ -171,4 +179,45 @@ export async function getEvents(
   const { items } = await listAllPages(accessToken, calendarId, params)
 
   return items.filter((e) => e.status !== 'cancelled')
+}
+
+/**
+ * 認可アカウントがアクセスできるカレンダー一覧を返す
+ * @param accessToken Googleカレンダーのアクセストークン
+ * @returns カレンダー一覧
+ */
+export async function listCalendars(
+  accessToken: string
+): Promise<CalendarListEntry[]> {
+  const items: CalendarListEntry[] = []
+  const params = new URLSearchParams({ maxResults: '250' })
+  let pageToken: string | undefined
+
+  do {
+    if (pageToken) {
+      params.set('pageToken', pageToken)
+    }
+
+    const url = `https://www.googleapis.com/calendar/v3/users/me/calendarList?${params.toString()}`
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(
+        `Calendar calendarList.list failed: ${response.status} ${text}`
+      )
+    }
+
+    const page = (await response.json()) as {
+      items?: CalendarListEntry[]
+      nextPageToken?: string
+    }
+    if (page.items?.length) {
+      items.push(...page.items)
+    }
+    pageToken = page.nextPageToken
+  } while (pageToken)
+
+  return items
 }

@@ -14,6 +14,7 @@
     "lint": "biome lint --verbose .",
     "format": "biome format --write --verbose .",
     "oauth": "node scripts/get-refresh-token.mjs",
+    "debug:calendar": "node scripts/list-upcoming-events.ts",
     "update-calendars": "wrangler kv key put config:calendars --binding=CALENDAR_KV --path=calendars.json --remote --preview false"
   },
   "devDependencies": {

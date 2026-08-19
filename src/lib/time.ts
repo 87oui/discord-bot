@@ -1,15 +1,21 @@
 export const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 
 /**
- * 今日の開始時刻と終了時刻を返す
+ * 日本時間当日 0:00 から指定日数後の 0:00 までを返す
  * @param now 現在時刻（Dateオブジェクト）
+ * @param days 日数（1なら当日のみ）
  * @param timeZone タイムゾーン
- * @returns 今日の開始時刻と終了時刻
+ * @returns 開始時刻と終了時刻
  */
-export function getTodayRange(
+export function getDaysRange(
   now = new Date(),
+  days = 1,
   timeZone = 'Asia/Tokyo'
 ): { timeMin: string; timeMax: string } {
+  if (!Number.isInteger(days) || days < 1) {
+    throw new Error('days must be a positive integer')
+  }
+
   // 渡された現在時刻Dateオブジェクトをパーツごとに分解する
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,
@@ -30,12 +36,25 @@ export function getTodayRange(
   const timeMin = new Date(
     `${year}-${month}-${day}T00:00:00+09:00`
   ).toISOString()
-  // timeMax: 翌日の0時0分
-  const nextDay = new Date(`${year}-${month}-${day}T00:00:00+09:00`)
-  nextDay.setUTCDate(nextDay.getUTCDate() + 1)
-  const timeMax = nextDay.toISOString()
+  // timeMax: 指定日数経過後の0時0分
+  const endDay = new Date(`${year}-${month}-${day}T00:00:00+09:00`)
+  endDay.setUTCDate(endDay.getUTCDate() + days)
+  const timeMax = endDay.toISOString()
 
   return { timeMin, timeMax }
+}
+
+/**
+ * 今日の開始時刻と終了時刻を返す
+ * @param now 現在時刻（Dateオブジェクト）
+ * @param timeZone タイムゾーン
+ * @returns 今日の開始時刻と終了時刻
+ */
+export function getTodayRange(
+  now = new Date(),
+  timeZone = 'Asia/Tokyo'
+): { timeMin: string; timeMax: string } {
+  return getDaysRange(now, 1, timeZone)
 }
 
 /**
@@ -92,7 +111,10 @@ function formatDate(date: Date, timeZone = 'Asia/Tokyo'): string {
  * @param dateStr 日時（ISO 8601形式）
  * @returns 日時を表す文字列（yyyy/mm/dd HH:MM）
  */
-function formatDateTime(dateStr: string, timeZone = 'Asia/Tokyo'): string {
+export function formatDateTime(
+  dateStr: string,
+  timeZone = 'Asia/Tokyo'
+): string {
   // 日付のみの場合は `-` を `/` に変換して返す
   if (DATE_ONLY.test(dateStr)) {
     return dateStr.replaceAll('-', '/')

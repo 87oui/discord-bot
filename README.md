@@ -10,7 +10,7 @@
 ### 構成
 
 - Cloudflare Workers + Cron Triggers
-- Workers KV（監視カレンダー・syncToken・イベントスナップショット）
+- Workers KV（監視するカレンダーの設定・シンクトークン・スナップショット）
 - Google Calendar API
 - Discord Incoming Webhook
 
@@ -18,7 +18,7 @@
 
 #### 1. 依存関係
 
-公式パッケージマネージャは **npm** です（`package-lock.json` 正本）。`yarn` / `bun` / `pnpm` での install は使わないでください。
+公式パッケージマネージャは **npm** です（`package-lock.json` が正）。`yarn` / `bun` / `pnpm` での install は使わないでください。
 
 ```bash
 # （推奨）Aikido Safe Chain — install 前にマルウェアをブロック
@@ -48,7 +48,7 @@ npx wrangler kv namespace create CALENDAR_KV --preview
 2. Google Calendar APIを有効化
   - OAuth同意画面をExternal（または Internal）で設定
 3. 認証情報 → OAuth クライアント ID（デスクトップ or Web）を作成
-4. リダイレクトURI に `http://127.0.0.1:8787/oauth2callback` を追加:
+4. リダイレクトURI に `http://127.0.0.1:8787/oauth2callback` を追加
 5. refresh_token を取得:
 
 ```bash
@@ -121,7 +121,7 @@ npm run deploy
 | Cron (UTC) | 意味 |
 |---|---|
 | `*/15 * * * *` | 変更通知ポーリング |
-| `0 21 * * *` | 朝マトメ（JST 06:00） |
+| `0 21 * * *` | 朝マトメ（日本時間06:00） |
 
 ### 通知仕様
 
@@ -133,7 +133,7 @@ npm run deploy
 
 #### 当日の予定一覧
 
-- 監視カレンダー全体の当日予定（JST）
+- 監視カレンダー全体の当日予定（日本時間）
 - 0 件でも「今日は予定なし」を送信
 
 ### 開発
@@ -143,8 +143,6 @@ npm run typecheck
 npm run test
 npm run dev
 ```
-
-単体テストは Vitest です。まずは純ロジック（`src/lib/*.test.ts`）を対象にしています。
 
 ### 運用ルール
 
