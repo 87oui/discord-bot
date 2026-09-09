@@ -26,6 +26,12 @@ async function runScheduled(event: ScheduledEvent, env: Env): Promise<void> {
 
     await handleSync(env)
   } catch (err) {
-    console.error(`Scheduled handler failed (${job}):`, err)
+    const message = err instanceof Error ? err.message : String(err)
+    const stack = err instanceof Error ? err.stack : undefined
+    console.error({
+      message: `Scheduled handler failed (${job})`,
+      error: message,
+      stack,
+    })
   }
 }

@@ -36,8 +36,15 @@ export async function getAccessToken(env: Env): Promise<string> {
   }
 
   const json = (await response.json()) as {
-    access_token: string
-    expires_in: number
+    access_token?: string
+    expires_in?: number
+    error?: string
+    error_description?: string
+  }
+  if (!json.access_token || typeof json.expires_in !== 'number') {
+    throw new Error(
+      `Google token response missing fields: error=${json.error ?? ''} ${json.error_description ?? ''} expires_in=${String(json.expires_in)}`
+    )
   }
 
   const cachedToken = {
