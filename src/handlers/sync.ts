@@ -42,6 +42,7 @@ export async function handleSync(env: Env): Promise<void> {
 
   const accessToken = await getAccessToken(env)
   const changes: Change[] = []
+  const syncErrors: string[] = []
 
   for (const calendar of calendars) {
     try {
@@ -55,24 +56,29 @@ export async function handleSync(env: Env): Promise<void> {
       changes.push(...result)
     } catch (err) {
       console.error(`Sync failed for calendar ${calendar.id}:`, err)
+      syncErrors.push(
+        `${calendar.name}: ${err instanceof Error ? err.message : String(err)}`
+      )
     }
   }
 
-  if (changes.length === 0) {
-    return
+  if (changes.length > 0) {
+    const messages: string[] = []
+    for (const change of changes) {
+      const emoji = {
+        追加: '✨',
+        削除: '❌',
+        日時変更: '⚡',
+      }[change.type]
+      const message = `${emoji}${change.type} ${change.calendarName}: ${change.summary} ${formatEventTime(change.start, change.end)}`
+      messages.push(message)
+    }
+    await sendNotification(env.DISCORD_WEBHOOK_URL, messages.join('\n'))
   }
 
-  const messages: string[] = []
-  for (const change of changes) {
-    const emoji = {
-      追加: '✨',
-      削除: '❌',
-      日時変更: '⚡',
-    }[change.type]
-    const message = `${emoji}${change.type} ${change.calendarName}: ${change.summary} ${formatEventTime(change.start, change.end)}`
-    messages.push(message)
+  if (syncErrors.length > 0) {
+    throw new Error(`カレンダー同期に失敗しました\n${syncErrors.join('\n')}`)
   }
-  await sendNotification(env.DISCORD_WEBHOOK_URL, messages.join('\n'))
 }
 
 /**

@@ -17,10 +17,7 @@ export default {
  * @returns スケジュールされたハンドラーが完了したことを示すPromise
  */
 async function runScheduled(event: ScheduledEvent, env: Env): Promise<void> {
-  const job =
-    event.cron === MORNING_CRON
-      ? { id: 'morning', label: '当日の予定取得' }
-      : { id: 'sync', label: '差分同期' }
+  const job = event.cron === MORNING_CRON ? '当日の予定取得' : '差分同期'
   try {
     if (event.cron === MORNING_CRON) {
       await handleMorning(env)
@@ -29,6 +26,6 @@ async function runScheduled(event: ScheduledEvent, env: Env): Promise<void> {
 
     await handleSync(env)
   } catch (err) {
-    console.error('Scheduled handler failed:', err)
+    console.error(`Scheduled handler failed (${job}):`, err)
   }
 }

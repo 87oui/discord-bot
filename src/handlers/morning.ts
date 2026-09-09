@@ -30,6 +30,7 @@ export async function handleMorning(env: Env, now = new Date()): Promise<void> {
   const accessToken = await getAccessToken(env)
   const { timeMin, timeMax } = getTodayRange(now)
   const items: MorningItem[] = []
+  const fetchErrors: string[] = []
 
   for (const calendar of calendars) {
     try {
@@ -55,22 +56,26 @@ export async function handleMorning(env: Env, now = new Date()): Promise<void> {
       }
     } catch (err) {
       console.error(`Morning fetch failed for calendar ${calendar.id}:`, err)
+      fetchErrors.push(
+        `${calendar.name}: ${err instanceof Error ? err.message : String(err)}`
+      )
     }
   }
 
   items.sort((a, b) => a.sortKey - b.sortKey)
 
-  if (items.length === 0) {
-    return
+  if (items.length > 0) {
+    const lines = [
+      '📅 本日の予定',
+      ...items.map(
+        (item) =>
+          `- ${item.calendarName}: ${item.summary} ${formatEventTime(item.start, item.end)}`
+      ),
+    ]
+    await sendNotification(env.DISCORD_WEBHOOK_URL, lines.join('\n'))
   }
 
-  const lines = [
-    '📅 本日の予定',
-    ...items.map(
-      (item) =>
-        `- ${item.calendarName}: ${item.summary} ${formatEventTime(item.start, item.end)}`
-    ),
-  ]
-
-  await sendNotification(env.DISCORD_WEBHOOK_URL, lines.join('\n'))
+  if (fetchErrors.length > 0) {
+    throw new Error(`カレンダー取得に失敗しました\n${fetchErrors.join('\n')}`)
+  }
 }
