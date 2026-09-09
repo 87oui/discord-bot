@@ -1,0 +1,46 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "google-calendar-discord-notify",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-08-01",
+
+  // Create a KV namespace, then replace id / preview_id:
+  //   npx wrangler kv namespace create CALENDAR_KV
+  //   npx wrangler kv namespace create CALENDAR_KV --preview
+  "kv_namespaces": [
+    {
+      "binding": "CALENDAR_KV",
+      "id": "0daf1a02252a4aa88264e9550014e1fd",
+      "preview_id": "2da15be6791f4ee981eac501687ddf4e"
+    }
+  ],
+
+  "triggers": {
+    "crons": [
+      "*/30 * * * *", // 30分おきに差分取得
+      "0 21 * * *" // UTC21時（日本時間6時）に予定取得
+    ]
+  },
+
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
+  }
+
+  // Secrets (set via `wrangler secret put`):
+  //   GOOGLE_CLIENT_ID
+  //   GOOGLE_CLIENT_SECRET
+  //   GOOGLE_REFRESH_TOKEN
+  //   DISCORD_WEBHOOK_URL
+}

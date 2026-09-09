@@ -40,7 +40,7 @@ npx wrangler kv namespace create CALENDAR_KV
 npx wrangler kv namespace create CALENDAR_KV --preview
 ```
 
-出力された ID を `wrangler.toml` の `id` / `preview_id` に設定します。
+出力された ID を `wrangler.jsonc` の `id` / `preview_id` に設定します。
 
 #### 3. Google OAuth
 
@@ -99,7 +99,7 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxxxx/xxxxx
 cp calendars.example.json calendars.json
 ## calendars.json を編集して、監視したいカレンダーの id / name を書く
 
-## wrangler.toml の binding 名で指定（namespace-id の手入力は不要）
+## wrangler.jsonc の binding 名で指定（namespace-id の手入力は不要）
 ## 本番 KV へ書き込む場合は --preview false
 npx wrangler kv key put config:calendars --binding=CALENDAR_KV --path=calendars.json --remote --preview false
 ```
@@ -108,7 +108,7 @@ npx wrangler kv key put config:calendars --binding=CALENDAR_KV --path=calendars.
 - `familyNotifyFilter` が未指定または `false` のカレンダーは従来どおり全予定が通知対象です。
 
 `calendars.json` は個人のカレンダー ID を含むため `.gitignore` 済みです。  
-先に「2. KV namespace」で作成した ID を `wrangler.toml` の `id` / `preview_id` に入れておいてください。
+先に「2. KV namespace」で作成した ID を `wrangler.jsonc` の `id` / `preview_id` に入れておいてください。
 
 #### 6. デプロイ
 
