@@ -4,6 +4,7 @@ import { getAccessToken } from '@/google/auth'
 import {
   type CalendarEvent,
   fullSyncEvents,
+  getEvents,
   normalizeEventTimes,
   SyncTokenInvalidError,
   syncEvents,
@@ -17,16 +18,25 @@ import {
   putSyncToken,
 } from '@/kv/store'
 import { shouldNotifyEvent } from '@/lib/notifyFilter'
-import { formatEventTime } from '@/lib/time'
+import { formatEventTime, getFromNowRange } from '@/lib/time'
+
+export const WATCH_START_LOOKAHEAD_DAYS = 365
 
 type ChangeType = '追加' | '日時変更' | '削除'
 
-interface Change {
+export interface Change {
   type: ChangeType
   calendarName: string
   summary: string
   start: string
   end: string
+  watchStart?: boolean
+}
+
+const CHANGE_EMOJI: Record<ChangeType, string> = {
+  追加: '✨',
+  削除: '❌',
+  日時変更: '⚡',
 }
 
 /**
@@ -63,17 +73,10 @@ export async function handleSync(env: Env): Promise<void> {
   }
 
   if (changes.length > 0) {
-    const messages: string[] = []
-    for (const change of changes) {
-      const emoji = {
-        追加: '✨',
-        削除: '❌',
-        日時変更: '⚡',
-      }[change.type]
-      const message = `${emoji}${change.type} ${change.calendarName}: ${change.summary} ${formatEventTime(change.start, change.end)}`
-      messages.push(message)
-    }
-    await sendNotification(env.DISCORD_WEBHOOK_URL, messages.join('\n'))
+    await sendNotification(
+      env.DISCORD_WEBHOOK_URL,
+      formatSyncNotification(changes)
+    )
   }
 
   if (syncErrors.length > 0) {
@@ -97,14 +100,22 @@ async function syncCalendar(
   calendarName: string,
   familyNotifyFilter: boolean
 ): Promise<Change[]> {
-  // 前回どこまで動機したかを、シンクトークンとスナップショットを取得して差分を確認する
+  // 前回どこまで同期したかを、シンクトークンとスナップショットを取得して差分を確認する
   const existingToken = await getSyncToken(env, calendarId)
   const snapshots = await getEventSnapshots(env, calendarId)
 
-  // トークンがない初回は全件取得してスナップショットを作成する
+  // トークンがないときはスナップショットを再構築する
   if (!existingToken) {
+    const notifyWatchStart = isInitialWatch(existingToken, snapshots)
+    const upcoming = notifyWatchStart
+      ? await getUpcomingEvents(accessToken, calendarId)
+      : []
     await rebuildSnapshot(env, accessToken, calendarId, snapshots)
-    return []
+    if (!notifyWatchStart) {
+      return []
+    }
+
+    return changesFromUpcomingEvents(upcoming, calendarName, familyNotifyFilter)
   }
 
   try {
@@ -273,4 +284,100 @@ function isNotifiableSnapshot(
   familyNotifyFilter: boolean
 ): boolean {
   return shouldNotifyEvent(snapshot.start, snapshot.end, familyNotifyFilter)
+}
+
+/**
+ * シンクトークンもスナップショットもない監視開始かどうかを返す
+ * @param existingToken シンクトークン
+ * @param snapshots スナップショット
+ * @returns 監視開始かどうか
+ */
+export function isInitialWatch(
+  existingToken: string | null,
+  snapshots: EventSnapshotMap
+): boolean {
+  return !existingToken && Object.keys(snapshots).length === 0
+}
+
+/**
+ * 未来の予定を取得する
+ * @param accessToken アクセストークン
+ * @param calendarId カレンダーID
+ * @returns 未来の予定
+ */
+async function getUpcomingEvents(
+  accessToken: string,
+  calendarId: string
+): Promise<CalendarEvent[]> {
+  const { timeMin, timeMax } = getFromNowRange(
+    new Date(),
+    WATCH_START_LOOKAHEAD_DAYS
+  )
+  return getEvents(accessToken, calendarId, timeMin, timeMax)
+}
+
+/**
+ * 未来の予定を監視開始の追加通知に変換する
+ * @param events カレンダーのイベント
+ * @param calendarName カレンダー名
+ * @param familyNotifyFilter 家族向け通知フィルタの設定
+ * @returns 監視開始の追加通知
+ */
+export function changesFromUpcomingEvents(
+  events: CalendarEvent[],
+  calendarName: string,
+  familyNotifyFilter: boolean
+): Change[] {
+  const changes: Change[] = []
+
+  for (const event of events) {
+    if (!event.id) continue
+    if (event.status === 'cancelled') continue
+
+    const next = normalizeEventTimes(event)
+    if (!isNotifiableSnapshot(next, familyNotifyFilter)) continue
+
+    changes.push({
+      type: '追加',
+      calendarName,
+      summary: next.summary,
+      start: next.start,
+      end: next.end,
+      watchStart: true,
+    })
+  }
+
+  return changes
+}
+
+/**
+ * 1件の変更を通知文にする
+ * @param change 変更
+ * @returns 通知文
+ */
+export function formatChangeLine(change: Change): string {
+  const emoji = CHANGE_EMOJI[change.type]
+  return `${emoji}${change.type} ${change.calendarName}: ${change.summary} ${formatEventTime(change.start, change.end)}`
+}
+
+/**
+ * 変更一覧を Discord 通知文にする
+ * @param changes 変更一覧
+ * @returns 通知文
+ */
+export function formatSyncNotification(changes: Change[]): string {
+  const watchStartChanges = changes.filter((change) => change.watchStart)
+  const regularChanges = changes.filter((change) => !change.watchStart)
+  const parts: string[] = []
+
+  if (watchStartChanges.length > 0) {
+    parts.push(
+      ['監視開始', ...watchStartChanges.map(formatChangeLine)].join('\n')
+    )
+  }
+  if (regularChanges.length > 0) {
+    parts.push(regularChanges.map(formatChangeLine).join('\n'))
+  }
+
+  return parts.join('\n\n')
 }

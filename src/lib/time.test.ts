@@ -3,6 +3,7 @@ import {
   formatEventTime,
   formatTimestamp,
   getDaysRange,
+  getFromNowRange,
   getTodayRange,
 } from '@/lib/time'
 
@@ -37,6 +38,24 @@ describe('getDaysRange', () => {
 
   it('days が 1 未満ならエラー', () => {
     expect(() => getDaysRange(new Date(), 0)).toThrow(
+      'days must be a positive integer'
+    )
+  })
+})
+
+describe('getFromNowRange', () => {
+  it('現在時刻から指定日数後までを返す', () => {
+    const now = new Date('2026-08-10T06:30:00.000Z')
+    const { timeMin, timeMax } = getFromNowRange(now, 7)
+
+    expect(timeMin).toBe(now.toISOString())
+    expect(timeMax).toBe(
+      new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    )
+  })
+
+  it('days が 1 未満ならエラー', () => {
+    expect(() => getFromNowRange(new Date(), 0)).toThrow(
       'days must be a positive integer'
     )
   })

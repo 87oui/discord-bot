@@ -58,6 +58,28 @@ export function getTodayRange(
 }
 
 /**
+ * 現在時刻から指定日数後までの範囲を返す
+ * @param now 現在時刻（Dateオブジェクト）
+ * @param days 日数
+ * @returns 開始時刻と終了時刻
+ */
+export function getFromNowRange(
+  now = new Date(),
+  days = 365
+): { timeMin: string; timeMax: string } {
+  if (!Number.isInteger(days) || days < 1) {
+    throw new Error('days must be a positive integer')
+  }
+
+  const timeMin = now.toISOString()
+  const timeMax = new Date(
+    now.getTime() + days * 24 * 60 * 60 * 1000
+  ).toISOString()
+
+  return { timeMin, timeMax }
+}
+
+/**
  * 開始・終了日時を表す文字列を返す
  * @param startDateTimeStr 開始日時（ISO 8601形式）
  * @param endDateTimeStr 終了日時（ISO 8601形式）
