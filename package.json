@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "biome check --write --verbose .",
